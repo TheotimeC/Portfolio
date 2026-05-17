@@ -91,6 +91,25 @@ export const PROJECTS: Project[] = [
   },
 ];
 
+export type Article = {
+  title: string;
+  description: string;
+  url: string;
+  date: string;
+  tags: string[];
+};
+
+export const ARTICLES: Article[] = [
+  {
+    title: "AI Agents: Should the Runtime Live in the Cloud or Locally?",
+    description:
+      "Why production agent architectures should separate cloud inference, local execution, and backend orchestration.",
+    url: "https://medium.com/@theotime.colinet/ai-agents-should-the-runtime-live-in-the-cloud-or-locally-a9ee1658ce56",
+    date: "Apr 28, 2026",
+    tags: ["ai-agent", "software-architecture", "mcp-server", "cloud-computing"],
+  },
+];
+
 export const APPROACH_PRINCIPLES = [
   {
     index: "01",

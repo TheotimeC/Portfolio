@@ -52,7 +52,7 @@ export function Contact() {
           className="space-y-8 text-center"
         >
           <div className="space-y-3">
-            <SectionLabel className="justify-center">06 — Contact</SectionLabel>
+            <SectionLabel className="justify-center">07 — Contact</SectionLabel>
             <h2 className="font-sans text-2xl font-semibold text-[var(--color-fg)]">
               Building something serious with AI?
             </h2>

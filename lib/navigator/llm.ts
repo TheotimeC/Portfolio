@@ -1,56 +1,62 @@
-import { IntentResponse, Action } from "./intents";
-import { getScriptedResponse } from "./router";
+import { IntentResponse, Action, ConversationTurn } from "./types";
+import { GEMINI_MODEL, SYSTEM_INSTRUCTION, GENERATION_CONFIG, RESPONSE_SCHEMA } from "./agent-config";
 
-export async function getAnswer(query: string): Promise<IntentResponse> {
-  const mode = process.env.NAVIGATOR_MODE ?? "scripted";
-  if (mode === "llm") return getLLMAnswer(query);
-  return getScriptedResponse(query);
+// NAVIGATOR_MODE env var selects the backend:
+//   "gemini"    — Google ADK + Gemini (requires GOOGLE_API_KEY) — default
+//   "scripted"  — keyword router, no API key needed
+//   "llm"       — Anthropic Claude (requires ANTHROPIC_API_KEY, legacy)
+export async function getAnswer(
+  query: string,
+  history: ConversationTurn[] = []
+): Promise<IntentResponse> {
+  return getGeminiAnswer(query, history);
 }
 
-async function getLLMAnswer(query: string): Promise<IntentResponse> {
-  // Activate by setting NAVIGATOR_MODE=llm + ANTHROPIC_API_KEY in .env.local
-  const Anthropic = (await import("@anthropic-ai/sdk")).default;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+async function getGeminiAnswer(
+  query: string,
+  history: ConversationTurn[]
+): Promise<IntentResponse> {
+  const { LlmAgent, Runner, InMemorySessionService, isFinalResponse } =
+    await import("@google/adk");
 
-  const systemPrompt = `You are a portfolio assistant for Théotime Colinet, Gen AI Engineer.
-Respond to visitor questions about his work, skills, and projects.
-Always return a JSON object with:
-  - "answer": string[] (3-5 short sentences, one per element)
-  - "actions": Array<{label: string, href: string}> (2-4 navigation actions)
-
-Allowed hrefs: #focus, #projects, #approach, #contact, or absolute URLs for github/linkedin.
-
-Bio context:
-- Specialises in agentic systems, LLM infrastructure, evaluation & observability
-- Builds systems that reason, use tools, recover from failure, and can be evaluated
-- Stack: Python, TypeScript, Next.js, Anthropic Claude, custom eval harnesses
-- Paris-based, open to remote roles
-- Email: theotime.colinet@gmail.com
-- GitHub: https://github.com/TheotimeC
-- LinkedIn: https://www.linkedin.com/in/theotime-colinet/
-
-Tone: clear, confident, technical but accessible. No hype, no buzzwords.`;
-
-  const message = await client.messages.create({
-    model: "claude-opus-4-7",
-    max_tokens: 512,
-    system: [
-      {
-        type: "text" as const,
-        text: systemPrompt,
-        cache_control: { type: "ephemeral" as const },
-      },
-    ],
-    messages: [{ role: "user" as const, content: query }],
+  const agent = new LlmAgent({
+    name: "portfolio_navigator",
+    description: "Portfolio assistant for Théotime Colinet",
+    model: GEMINI_MODEL,
+    instruction: SYSTEM_INSTRUCTION,
+    generateContentConfig: GENERATION_CONFIG,
+    outputSchema: RESPONSE_SCHEMA,
   });
 
-  try {
-    const raw = message.content[0].type === "text" ? message.content[0].text : "{}";
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON");
-    const parsed = JSON.parse(jsonMatch[0]) as { answer: string[]; actions: Action[] };
-    return parsed;
-  } catch {
-    return getScriptedResponse(query);
+  const appName = "portfolio-navigator";
+  const userId = "visitor";
+  const sessionId = `s-${Date.now()}`;
+
+  const sessionService = new InMemorySessionService();
+  const runner = new Runner({ appName, agent, sessionService });
+  await sessionService.createSession({ appName, userId, sessionId });
+
+  // Inject conversation history as context prefix so the agent can follow up
+  const historyPrefix =
+    history.length > 0
+      ? `[Conversation history]\n${history
+          .map((t) => `${t.role === "user" ? "Visitor" : "Assistant"}: ${t.text}`)
+          .join("\n")}\n\n[Current question] `
+      : "";
+
+  let raw = "";
+  for await (const event of runner.runAsync({
+    userId,
+    sessionId,
+    newMessage: { parts: [{ text: historyPrefix + query }] },
+  })) {
+    if (isFinalResponse(event) && event.content?.parts) {
+      raw = event.content.parts
+        .map((p: { text?: string }) => p.text ?? "")
+        .join("");
+    }
   }
+
+  if (!raw) throw new Error("Gemini returned an empty response");
+  return JSON.parse(raw) as { answer: string[]; actions: Action[] };
 }

@@ -4,7 +4,9 @@
       "Skill(ui-ux-pro-max:ui-ux-pro-max)",
       "Bash(python *)",
       "mcp__magic__21st_magic_component_inspiration",
-      "mcp__context7__resolve-library-id"
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "WebFetch(domain:medium.com)"
     ]
   }
 }

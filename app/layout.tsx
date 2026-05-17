@@ -16,20 +16,20 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Théotime Colinet — Gen AI Engineer",
+  title: "Théotime Colinet - AI Engineer",
   description:
     "Building agentic AI systems that are observable, controllable, and useful beyond the demo.",
   openGraph: {
     type: "website",
     locale: "en_US",
-    title: "Théotime Colinet — Gen AI Engineer",
+    title: "Théotime Colinet - AI Engineer",
     description:
       "Building agentic AI systems that are observable, controllable, and useful beyond the demo.",
     siteName: "Théotime Colinet",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Théotime Colinet — Gen AI Engineer",
+    title: "Théotime Colinet - AI Engineer",
     description:
       "Building agentic AI systems that are observable, controllable, and useful beyond the demo.",
   },

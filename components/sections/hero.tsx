@@ -42,7 +42,7 @@ export function Hero() {
               {...fadeUp(0.14)}
               className="font-sans text-lg font-medium text-[var(--color-fg-muted)]"
             >
-              {PERSON.title} —{" "}
+              {PERSON.title} -{" "}
               <span className="text-[var(--color-fg-muted)]/70">{PERSON.subtitle}</span>
             </motion.p>
 
