@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ArrowUp, RotateCcw } from "lucide-react";
 import { SectionLabel } from "@/components/section-label";
 import { Button } from "@/components/ui/button";
+import { getAnswer } from "@/lib/navigator/client-llm";
 import type { Action, ConversationTurn } from "@/lib/navigator/types";
 
 const SUGGESTED = [
@@ -119,17 +120,11 @@ export function Navigator() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/navigator", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: trimmed, history }),
-      });
-      if (!res.ok) throw new Error(`API ${res.status}`);
-      const data = await res.json() as { answer?: string[]; actions?: Action[] };
+      const data = await getAnswer(trimmed.slice(0, 500), history);
       setIsLoading(false);
 
-      const fullLines = data.answer ?? ["Something went wrong. Try refreshing the page."];
-      const actions = data.actions ?? [{ label: "Contact", href: "#contact" }];
+      const fullLines = data.answer.length > 0 ? data.answer : ["Something went wrong. Try refreshing the page."];
+      const actions: Action[] = data.actions.length > 0 ? data.actions : [{ label: "Contact", href: "#contact" }];
       setMessages((prev) => [
         ...prev,
         {
